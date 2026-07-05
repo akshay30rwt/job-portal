@@ -77,4 +77,37 @@ const deleteJob = async (req, res, next) => {
     }
 };
 
-module.exports = { createJob, getAllJobs, getJobById, updateJob, deleteJob };
+const getJobsWithUserDetails = async (req, res, next) => {
+    try {
+        const jobs = await Job.aggregate([
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'postedBy',
+                    foreignField: '_id',
+                    as: 'postedByUser'
+                }
+            },
+            {
+                $unwind: '$postedByUser'
+            },
+            {
+                $project: {
+                    title: 1,
+                    company: 1,
+                    location: 1,
+                    salary: 1,
+                    'postedByUser.name': 1,
+                    'postedByUser.email': 1,
+                    _id: 1
+                }
+            }
+        ]);
+
+        res.status(200).json(jobs);
+    } catch (err) {
+        next(err);
+    }
+};
+
+module.exports = { createJob, getAllJobs, getJobById, updateJob, deleteJob, getJobsWithUserDetails };

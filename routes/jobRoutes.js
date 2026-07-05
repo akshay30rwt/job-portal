@@ -8,12 +8,14 @@ const {
     getAllJobs,
     getJobById,
     updateJob,
-    deleteJob
+    deleteJob,
+    getJobsWithUserDetails
 } = require('../controllers/jobController');
 
+router.post('/', protect, validate(jobSchema), createJob);
+router.get('/details/full', getJobsWithUserDetails);
 router.get('/', getAllJobs);
 router.get('/:id', getJobById);
-router.post('/', protect, validate(jobSchema), createJob);
 router.put('/:id', protect, validate(jobSchema), updateJob);
 router.delete('/:id', protect, deleteJob);
 
