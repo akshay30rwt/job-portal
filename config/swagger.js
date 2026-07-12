@@ -9,7 +9,8 @@ const options = {
             description: 'A REST API for managing job listings with authentication'
         },
         servers: [
-            { url: 'http://localhost:3000' }
+            { url: 'http://localhost:3000', description: 'Local server' },
+            { url: 'https://job-portal-awf0.onrender.com', description: 'Production server' }
         ],
         components: {
             securitySchemes: {
