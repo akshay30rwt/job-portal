@@ -20,7 +20,7 @@ const register = async (req, res, next) => {
 
         const verificationToken = generateToken();
 
-        const user = new User({ name, email, password: hashedPassword });
+        const user = new User({ name, email, password: hashedPassword, verificationToken, verificationTokenExpires: Date.now() + 24 * 60 * 60 * 1000 });
         await user.save();
 
         const verificationUrl = `https://job-portal-awf0.onrender.com/auth/verify-email/${verificationToken}`;
@@ -47,13 +47,14 @@ const verifyEmail = async (req, res, next) => {
     try {
         const { token } = req.params;
 
-        const user = await User.findOne({ verificationToken: token });
+        const user = await User.findOne({ verificationToken: token, verificationTokenExpires: { $gt: Date.now() } });
         if(!user) {
             throw new AppError('Invalid or expired verification token', 400);
         }
 
         user.isVerified = true;
         user.verificationToken = null;
+        user.verificationTokenExpires = null;
         await user.save();
 
         res.status(200).json({
