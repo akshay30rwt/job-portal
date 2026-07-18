@@ -109,7 +109,7 @@ const forgotPassword = async (req, res, next) => {
         user.resetPasswordExpiry = resetExpiry;
         await user.save();
 
-        const resetUrl = `https://job-portal-awf0.onrender.com/auth/verify-email/${resetToken}`;
+        const resetUrl = `https://job-portal-awf0.onrender.com/auth/reset-password/${resetToken}`;
 
         await sendEmail({
             to: email,
