@@ -25,6 +25,8 @@ const register = async (req, res, next) => {
 
         const verificationUrl = `https://job-portal-awf0.onrender.com/auth/verify-email/${verificationToken}`;
 
+        res.status(201).json({ message: 'User registered successfully'} );
+
         await sendEmail({
             to: email,
             subject: 'Verify Your Email',
@@ -34,9 +36,9 @@ const register = async (req, res, next) => {
                 <a href="${verificationUrl}">Verify Email</a>
                 <p>This link will expire in 24 hours.</p>
             `
+        }).catch((err) => {
+            console.error('Failed to send verification email:', err.message);
         });
-
-        res.status(201).json({ message: 'User registered successfully'} );
     }
     catch(err) {
         next(err);
@@ -115,6 +117,10 @@ const forgotPassword = async (req, res, next) => {
 
         const resetUrl = `https://job-portal-awf0.onrender.com/auth/reset-password/${resetToken}`;
 
+        res.status(200).json({
+            message: 'Password reset link sent to your email'
+        });
+
         await sendEmail({
             to: email,
             subject: 'Password Reset Request',
@@ -125,10 +131,8 @@ const forgotPassword = async (req, res, next) => {
                 <p>This link expires in 1 hour.</p>
                 <p>If you didn't request this, ignore this email.</p>
             `
-        });
-
-        res.status(200).json({
-            message: 'Password reset link sent to your email'
+        }).catch((err) => {
+            console.error('Failed to send password reset email:', err.message);
         });
     }
     catch(error) {
