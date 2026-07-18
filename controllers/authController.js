@@ -75,6 +75,10 @@ const login = async (req, res, next) => {
             throw new AppError('Invalid email or password', 400);
         }
 
+        if(!user.isVerified) {
+            throw new AppError('Please verify your email before logging in', 400);
+        }
+
         const isMatch = await bcrypt.compare(password, user.password);
         if(!isMatch) {
             throw new AppError('Invalid email or password', 400);
