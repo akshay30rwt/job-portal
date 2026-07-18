@@ -17,7 +17,9 @@ const {
  * /jobs:
  *   post:
  *     summary: Create a new job
- *     tags: [Jobs]
+ *     description: Creates a new job posting associated with the authenticated user.
+ *     tags:
+ *       - Jobs
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -26,20 +28,54 @@ const {
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - title
+ *               - company
+ *               - location
+ *               - salary
  *             properties:
  *               title:
  *                 type: string
+ *                 example: Backend Developer
  *               company:
  *                 type: string
+ *                 example: OpenAI
  *               location:
  *                 type: string
+ *                 example: San Francisco, CA
  *               salary:
  *                 type: number
+ *                 example: 120000
  *     responses:
  *       201:
- *         description: Job created successfully
+ *         description: Job created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 title:
+ *                   type: string
+ *                 company:
+ *                   type: string
+ *                 location:
+ *                   type: string
+ *                 salary:
+ *                   type: number
+ *                 postedBy:
+ *                   type: string
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *                 updatedAt:
+ *                   type: string
+ *                   format: date-time
  *       401:
- *         description: No token provided
+ *         description: Authentication required.
+ *       500:
+ *         description: Internal server error
  */
 
 router.post('/', protect, validate(jobSchema), createJob);
@@ -48,11 +84,40 @@ router.post('/', protect, validate(jobSchema), createJob);
  * @swagger
  * /jobs/details/full:
  *   get:
- *     summary: Get all jobs with user details
- *     tags: [Jobs]
+ *     summary: Get all jobs with poster details
+ *     description: Retrieves all jobs along with the name and email of the user who posted each job.
+ *     tags:
+ *       - Jobs
  *     responses:
  *       200:
- *         description: Available jobs with user details
+ *         description: Jobs retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                   title:
+ *                     type: string
+ *                   company:
+ *                     type: string
+ *                   location:
+ *                     type: string
+ *                   salary:
+ *                     type: number
+ *                   postedByUser:
+ *                     type: object
+ *                     properties:
+ *                       name:
+ *                         type: string
+ *                       email:
+ *                         type: string
+ *                         format: email
+ *       500:
+ *         description: Internal server error
  */
 
 router.get('/details/full', getJobsWithUserDetails);
@@ -62,10 +127,20 @@ router.get('/details/full', getJobsWithUserDetails);
  * /jobs:
  *   get:
  *     summary: Get all jobs
- *     tags: [Jobs]
+ *     description: Retrieves all available job postings.
+ *     tags:
+ *       - Jobs
  *     responses:
  *       200:
- *         description: Available jobs 
+ *         description: Jobs retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *       500:
+ *         description: Internal server error
  */
 
 router.get('/', getAllJobs);
@@ -74,21 +149,29 @@ router.get('/', getAllJobs);
  * @swagger
  * /jobs/{id}:
  *   get:
- *     summary: Get job by id
- *     tags: [Jobs]
- *     parameters: 
- *       - name: id
- *         in: path
+ *     summary: Get a job by ID
+ *     description: Retrieves a specific job posting by its ID.
+ *     tags:
+ *       - Jobs
+ *     parameters:
+ *       - in: path
+ *         name: id
  *         required: true
- *         description: job ID
- *         schema: 
+ *         description: MongoDB ObjectId of the job.
+ *         schema:
  *           type: string
- *           pattern: '^[0-9a-fA-F]{24}$'
+ *           pattern: "^[a-fA-F0-9]{24}$"
  *     responses:
  *       200:
- *         description: Available jobs 
+ *         description: Job retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
  *       404:
- *         description: Job not found
+ *         description: Job not found.
+ *       500:
+ *         description: Internal server error
  */
 
 router.get('/:id', getJobById);
@@ -98,39 +181,56 @@ router.get('/:id', getJobById);
  * /jobs/{id}:
  *   put:
  *     summary: Update a job
- *     tags: [Jobs]
+ *     description: Updates an existing job posting.
+ *     tags:
+ *       - Jobs
  *     security:
  *       - bearerAuth: []
- *     parameters: 
- *       - name: id
- *         in: path
+ *     parameters:
+ *       - in: path
+ *         name: id
  *         required: true
- *         description: job ID
- *         schema: 
+ *         description: MongoDB ObjectId of the job.
+ *         schema:
  *           type: string
- *           pattern: '^[0-9a-fA-F]{24}$'        
+ *           pattern: "^[a-fA-F0-9]{24}$"
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - title
+ *               - company
+ *               - location
+ *               - salary
  *             properties:
  *               title:
  *                 type: string
+ *                 example: Senior Backend Developer
  *               company:
  *                 type: string
+ *                 example: OpenAI
  *               location:
  *                 type: string
+ *                 example: Remote
  *               salary:
  *                 type: number
+ *                 example: 150000
  *     responses:
  *       200:
- *         description: Job updated successfully
+ *         description: Job updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
  *       401:
- *         description: No token provided
+ *         description: Authentication required.
  *       404:
- *         description: Job not found
+ *         description: Job not found.
+ *       500:
+ *         description: Internal server error
  */
 
 router.put('/:id', protect, validate(jobSchema), updateJob);
@@ -140,24 +240,36 @@ router.put('/:id', protect, validate(jobSchema), updateJob);
  * /jobs/{id}:
  *   delete:
  *     summary: Delete a job
- *     tags: [Jobs]
+ *     description: Deletes a job posting by its ID.
+ *     tags:
+ *       - Jobs
  *     security:
  *       - bearerAuth: []
- *     parameters: 
- *       - name: id
- *         in: path
+ *     parameters:
+ *       - in: path
+ *         name: id
  *         required: true
- *         description: job ID
- *         schema: 
+ *         description: MongoDB ObjectId of the job.
+ *         schema:
  *           type: string
- *           pattern: '^[0-9a-fA-F]{24}$'        
+ *           pattern: "^[a-fA-F0-9]{24}$"
  *     responses:
  *       200:
- *         description: Job deleted successfully
+ *         description: Job deleted successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Job Backend Developer deleted successfully
  *       401:
- *         description: No token provided
+ *         description: Authentication required.
  *       404:
- *         description: Job not found
+ *         description: Job not found.
+ *       500:
+ *         description: Internal server error
  */
 
 router.delete('/:id', protect, deleteJob);
