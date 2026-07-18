@@ -2,6 +2,9 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const AppError = require('../utils/AppError');
+const sendEmail = require('../utils/sendEmail');
+const generateToken = require('../utils/generateToken');
+const cloudinary = require('../config/cloudinary');
 
 const register = async (req, res, next) => {
     try {
@@ -15,15 +18,52 @@ const register = async (req, res, next) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
+        const verificationToken = generateToken();
+
         const user = new User({ name, email, password: hashedPassword });
         await user.save();
+
+        const verificationUrl = `https://job-portal-awf0.onrender.com/auth/verify-email/${verificationToken}`;
+
+        await sendEmail({
+            to: email,
+            subject: 'Verify Your Email',
+            html: `
+                <h2>Welcome ${name}</h2>
+                <p>Click the link below to verify your email:</p>
+                <a href="${verificationUrl}">Verify Email</a>
+                <p>This link will expire in 24 hours.</p>
+            `
+        });
 
         res.status(201).json({ message: 'User registered successfully'} );
     }
     catch(err) {
         next(err);
     }
-}
+};
+
+const verifyEmail = async (req, res, next) => {
+    try {
+        const { token } = req.params;
+
+        const user = await User.findOne({ verificationToken: token });
+        if(!user) {
+            throw new AppError('Invalid or expired verification token', 400);
+        }
+
+        user.isVerified = true;
+        user.verificationToken = null;
+        await user.save();
+
+        res.status(200).json({
+            message: 'Email verified successfully. You can now login.'
+        });
+    }
+    catch(error) {
+        next(error);
+    }
+};
 
 const login = async (req, res, next) => {
     try {
@@ -50,6 +90,119 @@ const login = async (req, res, next) => {
     catch(err) {
         next(err);
     }
-}
+};
 
-module.exports = { register, login }
+const forgotPassword = async (req, res, next) => {
+    try {
+        const { email } = req.body;
+
+        const user = await User.findOne({ email });
+        if(!user) {
+            throw new AppError('No account found with this email', 404);
+        }
+
+        const resetToken = generateToken();
+        const resetExpiry = new Date(Date.now() + 60 * 60 * 1000);
+
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpiry = resetExpiry;
+        await user.save();
+
+        const resetUrl = `https://job-portal-awf0.onrender.com/auth/verify-email/${resetToken}`;
+
+        await sendEmail({
+            to: email,
+            subject: 'Password Reset Request',
+            html: `
+                <h2>Password Reset</h2>
+                <p>You requested a password reset. Click the link below:</p>
+                <a href="${resetUrl}">Reset Password</a>
+                <p>This link expires in 1 hour.</p>
+                <p>If you didn't request this, ignore this email.</p>
+            `
+        });
+
+        res.status(200).json({
+            message: 'Password reset link sent to your email'
+        });
+    }
+    catch(error) {
+        next(error);
+    }
+};
+
+const resetPassword = async (req, res, next) => {
+    try {
+        const { token } = req.params;
+        const { password } = req.body;
+
+        const user = await User.findOne({
+            resetPasswordToken: token,
+            resetPasswordExpiry: { $gt: Date.now() }
+        });
+
+        if(!user) {
+            throw new AppError('Invalid or expired reset token', 400);
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(password, salt);
+        user.resetPasswordToken = null;
+        user.resetPasswordExpiry = null;
+        await user.save();
+
+        res.status(200).json({
+            message: 'Password reset successful. You can now login.'
+        });
+    }
+    catch(error) {
+        next(error);
+    }
+};
+
+const uploadAvatar = async (req, res, next) => {
+    try {
+        if (!req.file) {
+            throw new AppError('Please upload an image', 400);
+        }
+
+        const user = await User.findById(req.userId);
+
+        if (user.avatar.publicId) {
+            await cloudinary.uploader.destroy(user.avatar.publicId);
+        }
+
+        const result = await new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+                { folder: 'avatars' },
+                (error, result) => {
+                    if (error) reject(error);
+                    else resolve(result);
+                }
+            );
+            uploadStream.end(req.file.buffer);
+        });
+
+        user.avatar.url = result.secure_url;
+        user.avatar.publicId = result.public_id;
+        await user.save();
+
+        res.status(200).json({
+            message: 'Avatar uploaded successfully',
+            avatar: user.avatar.url
+        });
+
+    } catch (err) {
+        next(err);
+    }
+};
+
+module.exports = {
+    register,
+    verifyEmail,
+    login,
+    forgotPassword,
+    resetPassword,
+    uploadAvatar,
+    getProfile
+};
