@@ -36,15 +36,22 @@ const {
  *             properties:
  *               title:
  *                 type: string
+ *                 minLength: 3
+ *                 maxLength: 100
  *                 example: Backend Developer
  *               company:
  *                 type: string
+ *                 minLength: 2
+ *                 maxLength: 100
  *                 example: OpenAI
  *               location:
  *                 type: string
- *                 example: San Francisco, CA
+ *                 minLength: 2
+ *                 maxLength: 100
+ *                 example: Remote
  *               salary:
  *                 type: number
+ *                 minimum: 0
  *                 example: 120000
  *     responses:
  *       201:
@@ -85,7 +92,7 @@ router.post('/', protect, validate(jobSchema), createJob);
  * /jobs/details/full:
  *   get:
  *     summary: Get all jobs with poster details
- *     description: Retrieves all jobs along with the name and email of the user who posted each job.
+ *     description: Retrieves all job postings along with the name and email of the user who posted each job.
  *     tags:
  *       - Jobs
  *     responses:
@@ -113,9 +120,11 @@ router.post('/', protect, validate(jobSchema), createJob);
  *                     properties:
  *                       name:
  *                         type: string
+ *                         example: John Doe
  *                       email:
  *                         type: string
  *                         format: email
+ *                         example: john@example.com
  *       500:
  *         description: Internal server error
  */
@@ -127,7 +136,7 @@ router.get('/details/full', getJobsWithUserDetails);
  * /jobs:
  *   get:
  *     summary: Get all jobs
- *     description: Retrieves all available job postings.
+ *     description: Retrieves all available job postings along with basic information about the user who posted each job.
  *     tags:
  *       - Jobs
  *     responses:
@@ -139,6 +148,35 @@ router.get('/details/full', getJobsWithUserDetails);
  *               type: array
  *               items:
  *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                   title:
+ *                     type: string
+ *                   company:
+ *                     type: string
+ *                   location:
+ *                     type: string
+ *                   salary:
+ *                     type: number
+ *                   postedBy:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                         example: John Doe
+ *                       email:
+ *                         type: string
+ *                         format: email
+ *                         example: john@example.com
+ *                   createdAt:
+ *                     type: string
+ *                     format: date-time
+ *                   updatedAt:
+ *                     type: string
+ *                     format: date-time
  *       500:
  *         description: Internal server error
  */
@@ -150,7 +188,7 @@ router.get('/', getAllJobs);
  * /jobs/{id}:
  *   get:
  *     summary: Get a job by ID
- *     description: Retrieves a specific job posting by its ID.
+ *     description: Retrieves a specific job by its ID along with the basic information of the user who posted it.
  *     tags:
  *       - Jobs
  *     parameters:
@@ -161,6 +199,7 @@ router.get('/', getAllJobs);
  *         schema:
  *           type: string
  *           pattern: "^[a-fA-F0-9]{24}$"
+ *           example: 64f0d5b6b8c2e14b5b5d1234
  *     responses:
  *       200:
  *         description: Job retrieved successfully.
@@ -168,6 +207,35 @@ router.get('/', getAllJobs);
  *           application/json:
  *             schema:
  *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 title:
+ *                   type: string
+ *                 company:
+ *                   type: string
+ *                 location:
+ *                   type: string
+ *                 salary:
+ *                   type: number
+ *                 postedBy:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                       example: John Doe
+ *                     email:
+ *                       type: string
+ *                       format: email
+ *                       example: john@example.com
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *                 updatedAt:
+ *                   type: string
+ *                   format: date-time
  *       404:
  *         description: Job not found.
  *       500:
@@ -181,7 +249,7 @@ router.get('/:id', getJobById);
  * /jobs/{id}:
  *   put:
  *     summary: Update a job
- *     description: Updates an existing job posting.
+ *     description: Updates an existing job by its ID.
  *     tags:
  *       - Jobs
  *     security:
@@ -194,6 +262,7 @@ router.get('/:id', getJobById);
  *         schema:
  *           type: string
  *           pattern: "^[a-fA-F0-9]{24}$"
+ *           example: 64f0d5b6b8c2e14b5b5d1234
  *     requestBody:
  *       required: true
  *       content:
@@ -208,15 +277,22 @@ router.get('/:id', getJobById);
  *             properties:
  *               title:
  *                 type: string
+ *                 minLength: 3
+ *                 maxLength: 100
  *                 example: Senior Backend Developer
  *               company:
  *                 type: string
+ *                 minLength: 2
+ *                 maxLength: 100
  *                 example: OpenAI
  *               location:
  *                 type: string
+ *                 minLength: 2
+ *                 maxLength: 100
  *                 example: Remote
  *               salary:
  *                 type: number
+ *                 minimum: 0
  *                 example: 150000
  *     responses:
  *       200:
@@ -225,6 +301,25 @@ router.get('/:id', getJobById);
  *           application/json:
  *             schema:
  *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 title:
+ *                   type: string
+ *                 company:
+ *                   type: string
+ *                 location:
+ *                   type: string
+ *                 salary:
+ *                   type: number
+ *                 postedBy:
+ *                   type: string
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *                 updatedAt:
+ *                   type: string
+ *                   format: date-time
  *       401:
  *         description: Authentication required.
  *       404:
@@ -240,7 +335,7 @@ router.put('/:id', protect, validate(jobSchema), updateJob);
  * /jobs/{id}:
  *   delete:
  *     summary: Delete a job
- *     description: Deletes a job posting by its ID.
+ *     description: Deletes a job by its ID.
  *     tags:
  *       - Jobs
  *     security:
@@ -253,6 +348,7 @@ router.put('/:id', protect, validate(jobSchema), updateJob);
  *         schema:
  *           type: string
  *           pattern: "^[a-fA-F0-9]{24}$"
+ *           example: 64f0d5b6b8c2e14b5b5d1234
  *     responses:
  *       200:
  *         description: Job deleted successfully.
@@ -263,7 +359,7 @@ router.put('/:id', protect, validate(jobSchema), updateJob);
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Job Backend Developer deleted successfully
+ *                   example: Job deleted successfully
  *       401:
  *         description: Authentication required.
  *       404:
